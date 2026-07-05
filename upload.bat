@@ -7,11 +7,9 @@ echo        학교안전사고 데이터 깃허브 자동 업로드 시작
 echo ============================================================
 echo.
 
-:: 1. Git 최초 사용자 등록 (이 부분이 없어서 에러가 났던 것입니다!)
-echo [준비] Git 최초 사용자 식별 정보를 설정합니다...
+:: 1. Git 사용자 정보 설정
 git config --global user.email "Joseph080910@example.com"
 git config --global user.name "Joseph080910"
-echo.
 
 set REPO_URL=https://github.com/Joseph080910/safety-dashboard.git
 
@@ -40,13 +38,13 @@ echo.
 
 echo [4/4] 깃허브로 파일 전송을 시작합니다...
 echo ------------------------------------------------------------
-echo ★ 주의: 58MB, 42MB 대용량 파일이 있어서 전송하는 데 
-echo   시간이 수십 초에서 수 분 정도 걸릴 수 있습니다.
-echo   창이 멈춘 것처럼 보여도 정상 작동 중이니 절대 닫지 마세요!
+echo ★ 주의: 원격 충돌을 방지하기 위해 강제 업로드(--force)를 수행합니다.
+echo   용량이 커서 완료까지 시간이 조금 걸릴 수 있으니 잠시만 기다려 주세요.
 echo ------------------------------------------------------------
 echo.
 
-git push -u origin main
+:: --force 옵션을 추가하여 [rejected] 오류를 해결합니다.
+git push -u origin main --force
 
 echo.
 echo ============================================================
