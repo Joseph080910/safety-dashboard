@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>학교안전사고 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══ 토큰 ═══════════════════════════════════════════════════ */
+:root{
+  --navy:#0f2744;
+  --navy2:#1a3a5c;
+  --blue:#2563eb;
+  --blue-light:#dbeafe;
+  --sky:#3b82f6;
+  --teal:#0891b2;
+  --red:#dc2626;
+  --red-light:#fee2e2;
+  --amber:#d97706;
+  --amber-light:#fef3c7;
+  --green:#059669;
+  --green-light:#d1fae5;
+  --purple:#7c3aed;
+  --bg:#f1f5f9;
+  --card:#ffffff;
+  --border:#e2e8f0;
+  --border2:#cbd5e1;
+  --text:#0f172a;
+  --text2:#334155;
+  --muted:#64748b;
+  --muted2:#94a3b8;
+  --radius:14px;
+  --radius-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+/* ── 배경 페이지 ── */
+html,body{min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+html{
+  background:linear-gradient(150deg,#0f172a 0%,#1e293b 40%,#0f172a 100%);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;padding:40px 20px 60px;
+}
+body{background:transparent;color:var(--text);width:100%;display:flex;flex-direction:column;align-items:center}
+
+/* ── 배경 라벨 ── */
+.page-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.25);letter-spacing:3px;text-transform:uppercase;margin-bottom:20px;text-align:center}
+.page-label-bottom{font-size:10px;color:rgba(255,255,255,.15);letter-spacing:1.5px;margin-top:20px;text-align:center}
+
+/* ── 폰 외곽 래퍼 ── */
+.phone-frame{
+  position:relative;
+  width:390px;
+  flex-shrink:0;
+}
+/* 베젤 (검정 프레임) */
+.phone-bezel{
+  position:absolute;
+  inset:-14px;
+  border-radius:66px;
+  background:linear-gradient(145deg,#2d2d2f,#1a1a1c,#2d2d2f);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.07),
+    0 60px 130px rgba(0,0,0,.8),
+    0 20px 50px rgba(0,0,0,.5);
+  z-index:0;pointer-events:none;
+}
+/* 베젤 안쪽 화면 테두리 */
+.phone-bezel::before{
+  content:'';position:absolute;inset:13px;
+  border-radius:53px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+}
+/* 우측 전원 버튼 */
+.phone-bezel::after{
+  content:'';position:absolute;
+  right:-5px;top:170px;
+  width:5px;height:70px;
+  background:linear-gradient(180deg,#3a3a3c,#252527,#3a3a3c);
+  border-radius:0 3px 3px 0;
+  box-shadow:2px 0 4px rgba(0,0,0,.5);
+}
+/* 좌측 볼륨 버튼 */
+.phone-vol{
+  position:absolute;left:-5px;top:140px;
+  width:5px;z-index:10;pointer-events:none;
+}
+.phone-vol::before,.phone-vol::after{
+  content:'';position:absolute;left:0;width:5px;
+  background:linear-gradient(180deg,#3a3a3c,#252527,#3a3a3c);
+  border-radius:3px 0 0 3px;
+  box-shadow:-2px 0 4px rgba(0,0,0,.5);
+}
+.phone-vol::before{top:0;height:46px}
+.phone-vol::after{top:62px;height:46px}
+
+/* ── 화면 (스크롤 영역) ── */
+.phone-screen{
+  position:relative;z-index:1;
+  background:var(--bg);color:var(--text);
+  border-radius:52px;
+  height:844px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scroll-behavior:smooth;
+  display:flex;flex-direction:column;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 0 0 1px rgba(0,0,0,.3);
+}
+/* 스크롤바 숨김 */
+.phone-screen::-webkit-scrollbar{display:none}
+.phone-screen{scrollbar-width:none}
+
+/* ── 노치 ── */
+.phone-notch{
+  position:sticky;top:0;
+  width:100%;height:52px;
+  background:linear-gradient(135deg,var(--navy),var(--navy2));
+  z-index:200;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding-top:6px;
+  flex-shrink:0;
+  pointer-events:none;
+}
+.notch-pill{
+  width:120px;height:32px;
+  background:#1a1a1c;
+  border-radius:0 0 20px 20px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 10px rgba(0,0,0,.6);
+}
+.notch-camera{
+  width:11px;height:11px;
+  background:radial-gradient(circle at 35% 35%,#2a2a4a,#050510);
+  border-radius:50%;border:1.5px solid #2a2a2e;
+  box-shadow:0 0 6px rgba(30,60,255,.15);
+}
+.notch-speaker{width:44px;height:4px;background:#111;border-radius:2px;border:1px solid #2a2a2e}
+
+/* ── 상태바 (노치 안) ── */
+.status-bar{
+  position:absolute;top:0;left:0;right:0;
+  height:52px;padding:14px 20px 0;
+  display:flex;align-items:center;justify-content:space-between;
+  z-index:210;pointer-events:none;
+}
+.status-time{font-size:13px;font-weight:700;color:#fff;letter-spacing:.3px}
+.status-icons{display:flex;align-items:center;gap:4px;font-size:11px;color:rgba(255,255,255,.9)}
+
+/* ── 홈 인디케이터 ── */
+.home-bar{
+  height:34px;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  position:sticky;bottom:0;z-index:100;
+  margin-top:auto;
+}
+.home-indicator{width:134px;height:5px;background:#1a1a1c;border-radius:3px;opacity:.2}
+
+/* ═══ 상단바 ════════════════════════════════════════════════ */
+.topbar{
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
+  padding:12px 16px 0;
+  position:sticky;top:52px;z-index:99;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  box-shadow:0 2px 12px rgba(15,39,68,.4);
+}
+.topbar-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.topbar-left{display:flex;align-items:center;gap:8px}
+.topbar-icon{
+  width:32px;height:32px;background:rgba(255,255,255,.12);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,.15);font-size:16px;
+}
+.topbar-title{color:#fff;font-size:15px;font-weight:700;letter-spacing:-.3px}
+.topbar-sub{color:rgba(255,255,255,.5);font-size:10px;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.settings-btn{
+  width:32px;height:32px;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.15);border-radius:8px;
+  color:rgba(255,255,255,.8);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.2s;
+}
+.settings-btn:active{background:rgba(255,255,255,.2)}
+.role-toggle{
+  display:flex;gap:2px;
+  background:rgba(0,0,0,.25);
+  border-radius:20px;padding:3px;
+  border:1px solid rgba(255,255,255,.08);
+}
+.role-btn{
+  padding:5px 13px;border-radius:16px;border:none;
+  font-size:11px;font-weight:600;cursor:pointer;
+  transition:.2s;color:rgba(255,255,255,.6);background:transparent;
+  letter-spacing:.2px;
+}
+.role-btn.active{background:rgba(255,255,255,.95);color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tab-row{
+  display:flex;gap:0;overflow-x:auto;scrollbar-width:none;
+  padding-bottom:1px;
+}
+.tab-row::-webkit-scrollbar{display:none}
+.tab-btn{
+  flex-shrink:0;padding:10px 16px;
+  border:none;background:transparent;
+  color:rgba(255,255,255,.5);
+  font-size:12px;font-weight:500;cursor:pointer;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;transition:.15s;letter-spacing:.1px;
+}
+.tab-btn.active{color:#fff;border-bottom-color:#60a5fa;font-weight:600}
+.tab-btn:active{color:rgba(255,255,255,.8)}
+
+/* ═══ 로딩 ═══════════════════════════════════════════════════ */
+.loading{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:65vh;gap:14px;padding:24px;
+}
+.spinner{
+  width:40px;height:40px;
+  border:3px solid var(--border);border-top-color:var(--blue);
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{color:var(--muted);font-size:13px;font-weight:500}
+.progress-bar{
+  width:220px;height:5px;
+  background:var(--border);border-radius:3px;overflow:hidden;
+}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));
+  border-radius:3px;transition:width .4s ease;
+}
+.load-hint{
+  font-size:11px;color:var(--muted2);text-align:center;
+  line-height:1.7;max-width:240px;
+}
+
+/* ═══ 설정 모달 ══════════════════════════════════════════════ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.6);z-index:200;
+  align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--card);
+  border-radius:22px 22px 0 0;
+  padding:6px 0 0;
+  width:100%;max-width:430px;max-height:85vh;overflow-y:auto;
+  box-shadow:0 -8px 32px rgba(0,0,0,.2);
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(40px)}to{transform:translateY(0)}}
+.modal-handle{
+  width:36px;height:4px;background:var(--border2);
+  border-radius:2px;margin:0 auto 20px;
+}
+.modal-inner{padding:0 20px 32px}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.modal-subtitle{font-size:12px;color:var(--muted);margin-bottom:20px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase}
+.form-input{
+  width:100%;padding:12px 14px;
+  border:1.5px solid var(--border);border-radius:10px;
+  font-size:14px;color:var(--text);outline:none;
+  background:var(--bg);transition:.2s;
+  font-family:inherit;
+}
+.form-input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.file-hint{
+  background:linear-gradient(135deg,#f8faff,#f1f5ff);
+  border:1px solid #dbeafe;border-radius:10px;
+  padding:12px 14px;margin-top:14px;
+}
+.file-hint-title{font-size:11px;font-weight:600;color:var(--blue);margin-bottom:8px}
+.file-hint-list{display:flex;flex-direction:column;gap:4px}
+.file-hint-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--text2);
+}
+.file-hint-item::before{content:'📄';font-size:11px}
+.file-code{
+  background:#fff;border:1px solid var(--border);
+  border-radius:5px;padding:1px 6px;
+  font-family:'SF Mono','Fira Code',monospace;font-size:10px;color:var(--navy2);
+}
+.modal-btns{display:flex;gap:8px;margin-top:20px}
+.btn{
+  flex:1;padding:13px;border-radius:12px;
+  border:none;font-size:14px;font-weight:600;
+  cursor:pointer;transition:.15s;font-family:inherit;
+  letter-spacing:.1px;
+}
+.btn:active{transform:scale(.98)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--blue),#1d4ed8);
+  color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);
+}
+.btn-secondary{background:var(--bg);color:var(--text2);border:1.5px solid var(--border)}
+
+/* ═══ 콘텐츠 ═════════════════════════════════════════════════ */
+.content{padding:0;flex:1}
+.view{display:none;padding:14px 12px 20px;animation:viewIn .2s ease}
+@keyframes viewIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.view.active{display:block}
+
+/* ═══ 카드 ═══════════════════════════════════════════════════ */
+.card{
+  background:var(--card);border-radius:var(--radius);
+  padding:16px;margin-bottom:10px;
+  border:1.5px solid var(--border);
+  box-shadow:var(--shadow);
+  transition:box-shadow .2s;
+}
+.card:last-child{margin-bottom:0}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title{
+  font-size:12px;color:var(--muted);font-weight:600;
+  display:flex;align-items:center;gap:5px;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.card-badge{
+  font-size:10px;padding:2px 7px;border-radius:20px;
+  background:var(--blue-light);color:var(--blue);font-weight:600;
+}
+
+/* ═══ KPI 그리드 ══════════════════════════════════════════════ */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.kpi{
+  background:var(--card);border-radius:var(--radius);padding:14px 12px;
+  border:1.5px solid var(--border);box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:var(--radius) var(--radius) 0 0;
+}
+.kpi.kpi-red::before{background:linear-gradient(90deg,var(--red),#ef4444)}
+.kpi.kpi-blue::before{background:linear-gradient(90deg,var(--blue),var(--teal))}
+.kpi.kpi-green::before{background:linear-gradient(90deg,var(--green),#10b981)}
+.kpi.kpi-amber::before{background:linear-gradient(90deg,var(--amber),#f59e0b)}
+.kpi-label{font-size:10px;color:var(--muted);font-weight:600;margin-bottom:5px;letter-spacing:.3px}
+.kpi-value{font-size:22px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi-value.red{color:var(--red)}
+.kpi-value.blue{color:var(--blue)}
+.kpi-value.green{color:var(--green)}
+.kpi-value.amber{color:var(--amber)}
+.kpi-sub{font-size:10px;color:var(--muted2);margin-top:4px}
+
+/* ═══ 경보 박스 ══════════════════════════════════════════════ */
+.alert-box{
+  background:linear-gradient(135deg,#fff5f5,#fff);
+  border:1.5px solid #fca5a5;border-radius:var(--radius);
+  padding:14px;margin-bottom:10px;
+  display:flex;align-items:flex-start;gap:12px;
+  box-shadow:0 2px 8px rgba(220,38,38,.1);
+  position:relative;overflow:hidden;
+}
+.alert-box::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:4px;background:var(--red);border-radius:var(--radius) 0 0 var(--radius);
+}
+.alert-pulse{
+  width:36px;height:36px;flex-shrink:0;
+  background:var(--red-light);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;animation:alertPulse 2s ease-in-out infinite;
+  border:1.5px solid #fca5a5;
+}
+@keyframes alertPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.alert-content{}
+.alert-title{font-size:13px;font-weight:700;color:var(--red);margin-bottom:2px}
+.alert-desc{font-size:11px;color:#b91c1c;line-height:1.5}
+
+/* ═══ 센서 그리드 ════════════════════════════════════════════ */
+.sensor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.sensor{
+  background:var(--card);border-radius:var(--radius);
+  padding:12px 13px;
+  border:1.5px solid var(--border);
+  box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+.sensor::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 var(--radius) var(--radius);
+}
+.sensor.s-danger::after{background:linear-gradient(90deg,var(--red),#ef4444)}
+.sensor.s-warn::after{background:linear-gradient(90deg,var(--amber),#f59e0b)}
+.sensor.s-safe::after{background:linear-gradient(90deg,var(--green),#10b981)}
+.sensor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sensor-name{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+.sensor-live{
+  width:6px;height:6px;border-radius:50%;flex-shrink:0;
+}
+.sensor-live.live-r{background:var(--red);animation:livePulse 1.2s infinite}
+.sensor-live.live-y{background:var(--amber)}
+.sensor-live.live-g{background:var(--green)}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.sensor-val{font-size:26px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.sensor-val.danger{color:var(--red)}
+.sensor-val.warn{color:var(--amber)}
+.sensor-val.safe{color:var(--green)}
+.sensor-status{font-size:10px;font-weight:600;margin-top:3px}
+.sensor-status.danger{color:var(--red)}
+.sensor-status.warn{color:var(--amber)}
+.sensor-status.safe{color:var(--green)}
+
+/* ═══ 바 차트 ════════════════════════════════════════════════ */
+.bar-list{display:flex;flex-direction:column;gap:9px}
+.bar-item{display:flex;align-items:center;gap:8px}
+.bar-label{font-size:11px;color:var(--muted);width:58px;flex-shrink:0;text-align:right;font-weight:500}
+.bar-track{
+  flex:1;height:7px;background:var(--bg);
+  border-radius:4px;overflow:hidden;
+  border:1px solid var(--border);
+}
+.bar-fill{height:100%;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.bar-val{font-size:11px;color:var(--text2);width:38px;text-align:right;font-weight:600}
+
+/* ═══ 타임라인 ════════════════════════════════════════════════ */
+.timeline{display:flex;flex-direction:column;gap:10px}
+.tl-item{display:flex;gap:10px;align-items:flex-start}
+.tl-dot{
+  width:8px;height:8px;border-radius:50%;
+  margin-top:4px;flex-shrink:0;
+  box-shadow:0 0 0 3px;
+}
+.tl-dot.red{background:var(--red);box-shadow:0 0 0 3px var(--red-light)}
+.tl-dot.amber{background:var(--amber);box-shadow:0 0 0 3px var(--amber-light)}
+.tl-dot.green{background:var(--green);box-shadow:0 0 0 3px var(--green-light)}
+.tl-dot.blue{background:var(--blue);box-shadow:0 0 0 3px var(--blue-light)}
+.tl-body{}
+.tl-title{font-size:12px;font-weight:600;color:var(--text)}
+.tl-desc{font-size:11px;color:var(--muted);margin-top:1px;line-height:1.5}
+
+/* ═══ 뱃지 ═══════════════════════════════════════════════════ */
+.badge{
+  display:inline-flex;align-items:center;
+  font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;
+}
+.badge-red{background:var(--red-light);color:var(--red);border:1px solid #fca5a5}
+.badge-amber{background:var(--amber-light);color:var(--amber);border:1px solid #fcd34d}
+.badge-green{background:var(--green-light);color:var(--green);border:1px solid #6ee7b7}
+.badge-blue{background:var(--blue-light);color:var(--blue);border:1px solid #93c5fd}
+
+/* ═══ 태그 선택 ══════════════════════════════════════════════ */
+.tag-group{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.tag{
+  font-size:11px;padding:5px 10px;border-radius:20px;
+  border:1.5px solid var(--border);background:var(--card);
+  color:var(--muted);cursor:pointer;transition:.15s;font-weight:500;
+}
+.tag.sel{
+  background:var(--navy);color:#fff;
+  border-color:var(--navy);
+  box-shadow:0 1px 4px rgba(15,39,68,.25);
+}
+.tag:active{transform:scale(.96)}
+
+/* ═══ AI 예측 ════════════════════════════════════════════════ */
+.model-chip{
+  background:linear-gradient(135deg,#eff6ff,#fff);
+  border:1.5px solid #bfdbfe;border-radius:var(--radius);
+  padding:12px 14px;display:flex;align-items:center;
+  gap:10px;margin-bottom:10px;
+  box-shadow:var(--shadow);
+}
+.model-chip-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,var(--blue),var(--teal));
+  border-radius:10px;display:flex;align-items:center;
+  justify-content:center;color:#fff;font-size:18px;
+  flex-shrink:0;box-shadow:0 2px 6px rgba(37,99,235,.3);
+}
+.model-chip-title{font-size:12px;font-weight:700;color:var(--navy)}
+.model-chip-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.predict-card{
+  background:linear-gradient(135deg,#fffbeb,#fff);
+  border:1.5px solid #fcd34d;border-radius:var(--radius);
+  padding:16px;margin-bottom:10px;
+  box-shadow:0 2px 8px rgba(217,119,6,.1);
+}
+.predict-label{font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase}
+.predict-meter{
+  height:10px;background:var(--bg);
+  border-radius:5px;overflow:hidden;
+  border:1px solid var(--border);margin-bottom:10px;
+}
+.predict-fill{
+  height:100%;border-radius:5px;
+  background:linear-gradient(90deg,var(--amber),var(--red));
+  transition:width .8s cubic-bezier(.4,0,.2,1);
+}
+.predict-result{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.predict-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* ═══ 스테이지 ════════════════════════════════════════════════ */
+.stage-row{display:flex;gap:7px;margin-bottom:8px}
+.stage{
+  flex:1;border-radius:var(--radius-sm);padding:10px 8px;
+  border:1.5px solid var(--border);position:relative;overflow:hidden;
+}
+.stage::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+}
+.stage.s1{background:#fff5f5}
+.stage.s1::before{background:linear-gradient(90deg,var(--red),#f87171)}
+.stage.s2{background:#eff6ff}
+.stage.s2::before{background:linear-gradient(90deg,var(--blue),var(--teal))}
+.stage.s3{background:#f0fdf4}
+.stage.s3::before{background:linear-gradient(90deg,var(--green),#10b981)}
+.stage-lbl{font-size:9px;font-weight:700;letter-spacing:.3px;margin-bottom:3px}
+.stage.s1 .stage-lbl{color:var(--red)}
+.stage.s2 .stage-lbl{color:var(--blue)}
+.stage.s3 .stage-lbl{color:var(--green)}
+.stage-val{font-size:12px;font-weight:700;color:var(--text)}
+.stage-desc{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* ═══ 테이블행 ════════════════════════════════════════════════ */
+.row-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--border);
+}
+.row-item:last-child{border-bottom:none}
+.row-label{font-size:12px;color:var(--muted)}
+.row-val{font-size:13px;font-weight:700;color:var(--text)}
+.row-val.green{color:var(--green)}
+.row-val.red{color:var(--red)}
+.row-val.blue{color:var(--blue)}
+
+/* ═══ 에러 ═══════════════════════════════════════════════════ */
+.error-box{
+  background:var(--card);border:1.5px solid #fca5a5;
+  border-radius:var(--radius);padding:20px;text-align:center;
+  margin:12px;box-shadow:var(--shadow);
+}
+.error-icon{font-size:36px;margin-bottom:10px}
+.error-box h3{color:var(--red);font-size:15px;margin-bottom:6px}
+.error-box p{color:var(--muted);font-size:12px;line-height:1.7}
+
+/* ═══ 차트 ═══════════════════════════════════════════════════ */
+.chart-wrap{position:relative;height:190px;margin-top:10px}
+
+/* ═══ 섹션 구분선 ════════════════════════════════════════════ */
+.section-label{
+  font-size:10px;font-weight:700;color:var(--muted);
+  letter-spacing:.8px;text-transform:uppercase;
+  margin:14px 0 8px;display:flex;align-items:center;gap:6px;
+}
+.section-label::after{
+  content:'';flex:1;height:1px;background:var(--border);
+}
+
+/* ═══ 도면 플레이스홀더 ══════════════════════════════════════ */
+.floor-plan{
+  background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+  border:1.5px dashed var(--border2);border-radius:var(--radius-sm);
+  height:110px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;margin-bottom:12px;
+}
+.floor-plan-icon{font-size:28px;opacity:.7}
+.floor-plan-text{font-size:11px;color:var(--muted);font-weight:500}
+.floor-plan-sub{font-size:10px;color:var(--muted2)}
+
+/* ═══ 입력 그룹 ══════════════════════════════════════════════ */
+.input-section{
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;
+}
+.input-section-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- 배경 라벨 -->
+<div class="page-label">학교안전사고 대시보드</div>
+
+<!-- 폰 프레임 -->
+<div class="phone-frame">
+  <div class="phone-bezel"></div>
+  <div class="phone-vol"></div>
+
+  <div class="phone-screen">
+    <!-- 노치 + 상태바 -->
+    <div class="phone-notch">
+      <div class="status-bar">
+        <div class="status-time">9:41</div>
+        <div class="status-icons">
+          <span style="font-size:10px;letter-spacing:1px">▲▲▲</span>
+          <span style="font-size:10px">Wi-Fi</span>
+          <span style="font-size:11px">100%</span>
+        </div>
+      </div>
+      <div class="notch-pill">
+        <div class="notch-camera"></div>
+        <div class="notch-speaker"></div>
+      </div>
+    </div>
+
+<!-- 상단바 -->
+<div class="topbar">
+  <div class="topbar-row">
+    <div class="topbar-left">
+      <div class="topbar-icon">🏫</div>
+      <div>
+        <div class="topbar-title">학교안전사고 대시보드</div>
+        <div class="topbar-sub">School Safety Dashboard v2</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="settings-btn" onclick="openSettings()">⚙️</button>
+      <div class="role-toggle">
+        <button class="role-btn active" id="btn-teacher" onclick="setRole('teacher')">교사용</button>
+        <button class="role-btn" id="btn-admin" onclick="setRole('admin')">관리자</button>
+      </div>
+    </div>
+  </div>
+  <div class="tab-row" id="tab-row"></div>
+</div>
+
+<!-- 설정 모달 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-inner">
+      <div class="modal-title">⚙️ GitHub 데이터 설정</div>
+      <div class="modal-subtitle">저장소 정보를 입력하면 실제 데이터를 불러옵니다</div>
+      <div class="form-group">
+        <label class="form-label">GitHub 사용자명</label>
+        <input class="form-input" id="gh-user" placeholder="예: Joseph080910">
+      </div>
+      <div class="form-group">
+        <label class="form-label">저장소 이름</label>
+        <input class="form-input" id="gh-repo" placeholder="예: safety-dashboard">
+      </div>
+      <div class="form-group">
+        <label class="form-label">브랜치</label>
+        <input class="form-input" id="gh-branch" placeholder="예: 기본" value="기본">
+      </div>
+      <div class="file-hint">
+        <div class="file-hint-title">📁 저장소에 업로드할 파일명</div>
+        <div class="file-hint-list">
+          <div class="file-hint-item"><span class="file-code">comp_data.xlsx</span> — 보상 데이터</div>
+          <div class="file-hint-item"><span class="file-code">acc_data.xlsx</span> — 발생 데이터</div>
+          <div class="file-hint-item"><span class="file-code">temp.csv</span> — 기온</div>
+          <div class="file-hint-item"><span class="file-code">rain.csv</span> — 강수량</div>
+          <div class="file-hint-item"><span class="file-code">nedis.csv</span> — 응급의료</div>
+        </div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" onclick="closeSettings()">취소</button>
+        <button class="btn btn-primary" onclick="saveAndLoad()">저장 후 로드</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 콘텐츠 -->
+<div class="content" id="content">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+    <div class="load-text" id="load-text">GitHub 설정을 입력해 주세요</div>
+    <button class="btn btn-primary" style="margin-top:4px;padding:11px 24px;border-radius:12px;max-width:200px" onclick="openSettings()">⚙️ 설정 열기</button>
+    <div class="load-hint">GitHub 저장소에 데이터 파일을 업로드한 후<br>위 설정에서 저장소 정보를 입력하세요</div>
+  </div>
+</div>
+
+<script>
+// ── 전역 상태 ─────────────────────────────────────────────────
+let STATE = {
+  role:'teacher', tab:0,
+  ghUser:localStorage.getItem('ghUser')||'',
+  ghRepo:localStorage.getItem('ghRepo')||'',
+  ghBranch:localStorage.getItem('ghBranch')||'기본',
+  data:null, charts:{}
+};
+const TABS = {
+  teacher:['📡 IoT 실시간','🗺️ 위험 도면','📋 사고 신고'],
+  admin:  ['📊 전국 현황','🧠 AI 분석','💰 재정·전략']
+};
+
+// ── 설정 ─────────────────────────────────────────────────────
+function openSettings(){
+  document.getElementById('gh-user').value=STATE.ghUser;
+  document.getElementById('gh-repo').value=STATE.ghRepo;
+  document.getElementById('gh-branch').value=STATE.ghBranch;
+  document.getElementById('modal').classList.add('open');
+}
+function closeSettings(){document.getElementById('modal').classList.remove('open')}
+function saveAndLoad(){
+  STATE.ghUser=document.getElementById('gh-user').value.trim();
+  STATE.ghRepo=document.getElementById('gh-repo').value.trim();
+  STATE.ghBranch=document.getElementById('gh-branch').value.trim()||'기본';
+  localStorage.setItem('ghUser',STATE.ghUser);
+  localStorage.setItem('ghRepo',STATE.ghRepo);
+  localStorage.setItem('ghBranch',STATE.ghBranch);
+  closeSettings(); loadData();
+}
+function raw(f){return`https://raw.githubusercontent.com/${STATE.ghUser}/${STATE.ghRepo}/${encodeURIComponent(STATE.ghBranch)}/${encodeURIComponent(f)}`}
+
+// ── 로딩 ─────────────────────────────────────────────────────
+async function loadData(){
+  if(!STATE.ghUser||!STATE.ghRepo){setLoadText('GitHub 설정을 입력해 주세요',0);return}
+  document.getElementById('content').innerHTML=`<div class="loading" id="loading"><div class="spinner"></div><div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div><div class="load-text" id="load-text">준비 중...</div></div>`;
+  setLoadText('보상 데이터 로딩 중...',15);
+  try{
+    const compBuf=await fetchBinary(raw('comp_data.xlsx'));
+    const compWb=XLSX.read(compBuf,{type:'array'});
+    setLoadText('발생 데이터 로딩 중...',35);
+    const accBuf=await fetchBinary(raw('acc_data.xlsx'));
+    const accWb=XLSX.read(accBuf,{type:'array'});
+    setLoadText('기상 데이터 로딩 중...',60);
+    const[tempCsv,rainCsv]=await Promise.all([fetchText(raw('temp.csv')),fetchText(raw('rain.csv'))]);
+    setLoadText('응급의료 데이터 로딩 중...',80);
+    const nedisCsv=await fetchText(raw('nedis.csv'));
+    setLoadText('데이터 분석 중...',92);
+    STATE.data=processData(compWb,accWb,tempCsv,rainCsv,nedisCsv);
+    setLoadText('완료!',100);
+    setTimeout(renderApp,350);
+  }catch(e){showError(e.message)}
+}
+async function fetchBinary(url){
+  const res=await fetch(url);
+  if(!res.ok)throw new Error(`파일 로드 실패: ${decodeURIComponent(url.split('/').pop())} (${res.status})\n\nGitHub 저장소가 Public인지,\n파일명이 정확한지 확인하세요.`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+async function fetchText(url){
+  const res=await fetch(url);
+  if(!res.ok)throw new Error(`파일 로드 실패: ${decodeURIComponent(url.split('/').pop())}`);
+  return res.text();
+}
+function setLoadText(msg,pct){
+  const lt=document.getElementById('load-text');
+  const pf=document.getElementById('progress');
+  if(lt)lt.textContent=msg;
+  if(pf)pf.style.width=pct+'%';
+}
+function showError(msg){
+  document.getElementById('content').innerHTML=`
+    <div class="error-box" style="margin:16px">
+      <div class="error-icon">⚠️</div>
+      <h3>데이터 로드 실패</h3>
+      <p style="white-space:pre-line;margin-top:8px">${msg}</p>
+      <button class="btn btn-primary" style="margin-top:16px;padding:11px;border-radius:10px;width:100%;max-width:200px" onclick="openSettings()">⚙️ 설정 수정</button>
+    </div>`;
+}
+
+// ── 데이터 처리 ───────────────────────────────────────────────
+function processData(compWb,accWb,tempCsv,rainCsv,nedisCsv){
+  const years=[2021,2022,2023,2024,2025];
+  let comp=[],acc=[];
+  years.forEach(y=>{
+    if(compWb.SheetNames.includes(String(y))){
+      XLSX.utils.sheet_to_json(compWb.Sheets[String(y)]).forEach(r=>{r.연도=y;comp.push(r)});
+    }
+    if(accWb.SheetNames.includes(String(y))){
+      XLSX.utils.sheet_to_json(accWb.Sheets[String(y)]).forEach(r=>{r.연도=y;acc.push(r)});
+    }
+  });
+  const 급여=['요양급여','장해급여','간병급여','유족급여','장례비','위로금','보전비용'];
+  comp.forEach(r=>{
+    r.총지급액=급여.reduce((s,k)=>s+(Number(r[k])||0),0);
+    r.중증도=(r.장해급여>0||r.간병급여>0||r.유족급여>0||r.총지급액>=5000000)?2:r.총지급액>=100000?1:0;
+  });
+  const byYear={};
+  years.forEach(y=>{
+    const rows=comp.filter(r=>r.연도===y);
+    byYear[y]={건수:rows.length,지급액:rows.reduce((s,r)=>s+r.총지급액,0),중증:rows.filter(r=>r.중증도===2).length};
+  });
+  const bySchool={};
+  comp.forEach(r=>{const k=r['학교급'];if(!bySchool[k])bySchool[k]={건수:0,중증:0,지급액:0};bySchool[k].건수++;if(r.중증도===2)bySchool[k].중증++;bySchool[k].지급액+=r.총지급액;});
+  const hs=comp.filter(r=>r['학교급']==='고등학교');
+  const byTime={};
+  hs.forEach(r=>{const k=r['사고시간'];if(!byTime[k])byTime[k]={건수:0,중증:0,지급액:0};byTime[k].건수++;if(r.중증도===2)byTime[k].중증++;byTime[k].지급액+=r.총지급액;});
+  const byRegion={};
+  hs.forEach(r=>{const k=r['지역'];if(!byRegion[k])byRegion[k]={건수:0,중증:0,지급액:0};byRegion[k].건수++;if(r.중증도===2)byRegion[k].중증++;byRegion[k].지급액+=r.총지급액;});
+  const regions=Object.entries(byRegion).map(([지역,v])=>({지역,...v}));
+  const mC=Math.max(...regions.map(r=>r.건수)),mS=Math.max(...regions.map(r=>r.중증)),mA=Math.max(...regions.map(r=>r.지급액));
+  regions.forEach(r=>{r.점수=(r.중증/mS)*.5+(r.건수/mC)*.3+(r.지급액/mA)*.2});
+  regions.sort((a,b)=>b.점수-a.점수);
+  function parseKma(csv,col){
+    const rows=[];let ok=false;
+    for(const line of csv.split('\n')){
+      const l=line.trim().lstrip?line.trim():line.trim().replace(/^\t+/,'');
+      if(l.startsWith('년월')){ok=true;continue}
+      if(ok&&l.includes(',')){
+        const p=l.split(',').map(s=>s.trim());
+        if(p[0]&&p[0].includes('-')){const[y,m]=p[0].split('-');const v=parseFloat(p[2]);if(!isNaN(v))rows.push({연도:parseInt(y),월:parseInt(m),[col]:v});}
+      }
+    }
+    return rows;
+  }
+  const temps=parseKma(tempCsv,'평균기온'),rains=parseKma(rainCsv,'강수량');
+  const weatherByYear={};
+  years.forEach(y=>{
+    const t=temps.filter(r=>r.연도===y),rr=rains.filter(r=>r.연도===y);
+    weatherByYear[y]={평균기온:t.length?t.reduce((s,r)=>s+r.평균기온,0)/t.length:0,연강수량:rr.reduce((s,r)=>s+r.강수량,0),결빙월수:t.filter(r=>(r.월<=2||r.월===12)&&r.평균기온<0).length,폭염월수:t.filter(r=>r.월>=7&&r.월<=8&&r.평균기온>26).length};
+  });
+  return{comp,acc,byYear,bySchool,byTime,regions,weatherByYear,total5y:comp.length,total5y지급:comp.reduce((s,r)=>s+r.총지급액,0),total중증:comp.filter(r=>r.중증도===2).length,hs};
+}
+
+// ── 렌더링 ────────────────────────────────────────────────────
+function renderApp(){
+  const d=STATE.data;
+  document.getElementById('content').innerHTML='<div id="views"></div>';
+  renderTeacherViews(d);
+  renderAdminViews(d);
+  renderTabs();
+  setRole(STATE.role);
+}
+function renderTabs(){
+  document.getElementById('tab-row').innerHTML=TABS[STATE.role].map((t,i)=>
+    `<button class="tab-btn${i===STATE.tab?' active':''}" onclick="setTab(${i})">${t}</button>`).join('');
+}
+function setRole(role){
+  STATE.role=role;STATE.tab=0;
+  document.getElementById('btn-teacher').className='role-btn'+(role==='teacher'?' active':'');
+  document.getElementById('btn-admin').className='role-btn'+(role==='admin'?' active':'');
+  renderTabs();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const t=document.getElementById(`${role}-0`);
+  if(t)t.classList.add('active');
+  setTimeout(()=>renderCharts(role,0),100);
+}
+function setTab(idx){
+  STATE.tab=idx;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const t=document.getElementById(`${STATE.role}-${idx}`);
+  if(t)t.classList.add('active');
+  setTimeout(()=>renderCharts(STATE.role,idx),100);
+}
+
+// ── 교사용 뷰 ─────────────────────────────────────────────────
+function renderTeacherViews(d){
+  const views=document.getElementById('views');
+
+  // T0: IoT 실시간
+  const v0=document.createElement('div');
+  v0.id='teacher-0';v0.className='view';
+  v0.innerHTML=`
+    <div class="alert-box">
+      <div class="alert-pulse">🚨</div>
+      <div class="alert-content">
+        <div class="alert-title">운동장 혼잡 경보 발령</div>
+        <div class="alert-desc">체육시간 · 밀집도 91% 초과<br>IoT 1순위 보급 학교</div>
+      </div>
+    </div>
+    <div class="sensor-grid">
+      <div class="sensor s-danger">
+        <div class="sensor-header"><span class="sensor-name">운동장</span><div class="sensor-live live-r"></div></div>
+        <div class="sensor-val danger">91%</div>
+        <div class="sensor-status danger">경보 발령 중</div>
+      </div>
+      <div class="sensor s-danger">
+        <div class="sensor-header"><span class="sensor-name">강당·체육관</span><div class="sensor-live live-r"></div></div>
+        <div class="sensor-val danger">78%</div>
+        <div class="sensor-status danger">경보 발령 중</div>
+      </div>
+      <div class="sensor s-warn">
+        <div class="sensor-header"><span class="sensor-name">3층 복도</span><div class="sensor-live live-y"></div></div>
+        <div class="sensor-val warn">61%</div>
+        <div class="sensor-status warn">주의 단계</div>
+      </div>
+      <div class="sensor s-safe">
+        <div class="sensor-header"><span class="sensor-name">계단</span><div class="sensor-live live-g"></div></div>
+        <div class="sensor-val safe">29%</div>
+        <div class="sensor-status safe">정상</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 시간대별 위험도</div>
+        <span class="card-badge">실제 데이터</span>
+      </div>
+      <div class="bar-list" id="time-bars-t"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">⏱️ 오늘 경보 이력</div></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot red"></div><div class="tl-body"><div class="tl-title">운동장 혼잡 경보 <span class="badge badge-red">경보</span></div><div class="tl-desc">10:22 · 체육시간</div></div></div>
+        <div class="tl-item"><div class="tl-dot amber"></div><div class="tl-body"><div class="tl-title">급식실 복도 주의</div><div class="tl-desc">12:05 · 식사시간</div></div></div>
+        <div class="tl-item"><div class="tl-dot green"></div><div class="tl-body"><div class="tl-title">센서 24/24 정상 작동</div><div class="tl-desc">개인정보 비침해 · 열감지만 수행</div></div></div>
+      </div>
+    </div>`;
+  views.appendChild(v0);
+
+  // T1: 위험 도면
+  const v1=document.createElement('div');
+  v1.id='teacher-1';v1.className='view';
+  v1.innerHTML=`
+    <div class="card">
+      <div class="card-header"><div class="card-title">🗺️ 층별 위험 도면</div><span class="card-badge">IoT 1순위</span></div>
+      <div class="floor-plan">
+        <div class="floor-plan-icon">🏫</div>
+        <div class="floor-plan-text">학교 평면도 위 PIR 센서 오버레이</div>
+        <div class="floor-plan-sub">🔴 경보 &nbsp;·&nbsp; 🟡 주의 &nbsp;·&nbsp; 🟢 정상</div>
+      </div>
+      <div class="bar-list" id="zone-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🌡️ 기상 연동 알림</div><span class="card-badge">KMA 실데이터</span></div>
+      <div class="timeline" id="weather-tl">
+        <div class="tl-item"><div class="tl-dot blue"></div><div class="tl-body"><div class="tl-title">기상 데이터 로딩 중...</div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📡 PIR 센서 시스템</div></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot blue"></div><div class="tl-body"><div class="tl-title">HC-SR501 × 24개 설치</div><div class="tl-desc">복도·계단·급식실·운동장 입구</div></div></div>
+        <div class="tl-item"><div class="tl-dot blue"></div><div class="tl-body"><div class="tl-title">ESP32 → MQTT → Raspberry Pi</div><div class="tl-desc">30초 집계 · 전광판/방송 자동 경보</div></div></div>
+        <div class="tl-item"><div class="tl-dot green"></div><div class="tl-body"><div class="tl-title">학교당 설치 원가 약 32만원</div><div class="tl-desc">영상 미사용 · 개인정보 비침해</div></div></div>
+      </div>
+    </div>`;
+  views.appendChild(v1);
+
+  // T2: 사고 신고
+  const v2=document.createElement('div');
+  v2.id='teacher-2';v2.className='view';
+  v2.innerHTML=`
+    <div class="model-chip">
+      <div class="model-chip-icon">🧠</div>
+      <div>
+        <div class="model-chip-title">최종 통합 모델 v3 — 3종 데이터 융합</div>
+        <div class="model-chip-desc">기상+NEDIS+경계구간 제거 · 중증 Recall 28.9%</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📍 사고 상황 선택</div></div>
+      <div class="input-section-label">발생 장소</div>
+      <div class="tag-group" id="tags-place">
+        <span class="tag sel" data-group="place">운동장</span>
+        <span class="tag" data-group="place">강당</span>
+        <span class="tag" data-group="place">복도</span>
+        <span class="tag" data-group="place">계단</span>
+        <span class="tag" data-group="place">교실</span>
+      </div>
+      <div class="input-section-label" style="margin-top:10px">사고 부위</div>
+      <div class="tag-group" id="tags-body">
+        <span class="tag sel" data-group="body">무릎</span>
+        <span class="tag" data-group="body">발목</span>
+        <span class="tag" data-group="body">어깨</span>
+        <span class="tag" data-group="body">허리</span>
+      </div>
+      <div class="input-section-label" style="margin-top:10px">사고 시간</div>
+      <div class="tag-group" id="tags-time">
+        <span class="tag sel" data-group="time">체육</span>
+        <span class="tag" data-group="time">쉬는시간</span>
+        <span class="tag" data-group="time">식사시간</span>
+        <span class="tag" data-group="time">진로활동</span>
+      </div>
+    </div>
+    <div class="predict-card">
+      <div class="predict-label">🤖 AI 중증도 예측 결과</div>
+      <div class="predict-meter"><div class="predict-fill" id="predict-bar" style="width:62%"></div></div>
+      <div class="predict-result" id="predict-val">중상 가능성 62%</div>
+      <div class="predict-sub" id="predict-sub">예상 지급액: 65~90만원</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📨 접수 자동 연동</div></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot blue"></div><div class="tl-body"><div class="tl-title">공제회 보상 절차 자동 시작</div><div class="tl-desc">신고 즉시 접수 처리</div></div></div>
+        <div class="tl-item"><div class="tl-dot blue"></div><div class="tl-body"><div class="tl-title">보호자 SMS 자동 발송</div><div class="tl-desc">사고 내용 + 병원 안내</div></div></div>
+        <div class="tl-item"><div class="tl-dot green"></div><div class="tl-body"><div class="tl-title">준비운동 체크 여부 확인</div><div class="tl-desc">오늘 체육 출석부 자동 조회</div></div></div>
+      </div>
+    </div>`;
+  views.appendChild(v2);
+
+  setTimeout(()=>{
+    document.querySelectorAll('.tag').forEach(tag=>{
+      tag.addEventListener('click',()=>{
+        const g=tag.dataset.group;
+        document.querySelectorAll(`.tag[data-group="${g}"]`).forEach(t=>t.classList.remove('sel'));
+        tag.classList.add('sel');
+        updatePrediction();
+      });
+    });
+  },200);
+}
+
+function updatePrediction(){
+  const d=STATE.data;
+  if(!d)return;
+  const time=document.querySelector('.tag.sel[data-group="time"]')?.textContent;
+  let filtered=d.hs;
+  if(time)filtered=filtered.filter(r=>r['사고시간']===time);
+  if(filtered.length===0)filtered=d.hs;
+  const 중증비율=filtered.filter(r=>r.중증도===2).length/filtered.length*100;
+  const 중상비율=filtered.filter(r=>r.중증도===1).length/filtered.length*100;
+  const 평균지급=filtered.reduce((s,r)=>s+r.총지급액,0)/filtered.length;
+  let level,color,범위;
+  if(중증비율>3){level=`중증 위험 높음 (${중증비율.toFixed(1)}%)`;color=`var(--red)`;범위='200만원 이상';}
+  else if(중상비율>55){level=`중상 가능성 ${Math.round(중상비율)}%`;color=`var(--amber)`;범위=`${Math.round(평균지급/10000*0.7)}~${Math.round(평균지급/10000*1.2)}만원`;}
+  else{level='경상 가능성 높음';color=`var(--green)`;범위='10만원 미만';}
+  const pct=Math.min(Math.max(중상비율+중증비율*3,10),95);
+  document.getElementById('predict-bar').style.width=pct+'%';
+  const rv=document.getElementById('predict-val');
+  rv.textContent=level;rv.style.color=color;
+  document.getElementById('predict-sub').textContent=`예상 지급액: ${범위} · ${filtered.length.toLocaleString()}건 분석 기반`;
+}
+
+// ── 관리자 뷰 ─────────────────────────────────────────────────
+function renderAdminViews(d){
+  const views=document.getElementById('views');
+  const latestYear=Object.keys(d.byYear).map(Number).sort().reverse()[0];
+  const ly=d.byYear[latestYear];
+  const 억=n=>(n/1e8).toFixed(1);
+
+  // A0: 전국 현황
+  const a0=document.createElement('div');
+  a0.id='admin-0';a0.className='view';
+  a0.innerHTML=`
+    <div class="kpi-grid">
+      <div class="kpi kpi-red"><div class="kpi-label">올해 발생</div><div class="kpi-value red">${ly.건수.toLocaleString()}</div><div class="kpi-sub">건 · ${latestYear}년</div></div>
+      <div class="kpi kpi-red"><div class="kpi-label">5년 총지급액</div><div class="kpi-value red">${억(d.total5y지급)}억</div><div class="kpi-sub">2021~2025 누적</div></div>
+      <div class="kpi kpi-blue"><div class="kpi-label">AI 중증탐지율</div><div class="kpi-value blue">28.9%</div><div class="kpi-sub">최종 모델 Recall</div></div>
+      <div class="kpi kpi-green"><div class="kpi-label">B/C ratio</div><div class="kpi-value green">2.09</div><div class="kpi-sub">IoT 투자효율</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📈 연도별 보상 건수</div><span class="card-badge">5년 추이</span></div>
+      <div class="chart-wrap"><canvas id="chart-year"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🏫 학교급별 중증비율</div><span class="card-badge">실계산</span></div>
+      <div class="bar-list" id="school-bars"></div>
+    </div>`;
+  views.appendChild(a0);
+
+  // A1: AI 분석
+  const a1=document.createElement('div');
+  a1.id='admin-1';a1.className='view';
+  a1.innerHTML=`
+    <div class="model-chip">
+      <div class="model-chip-icon">🧠</div>
+      <div><div class="model-chip-title">최종 통합 모델 v3</div>
+        <div class="model-chip-desc">기상+NEDIS+경계구간 제거 · 학습 443,361건</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📊 모델 성능 지표</div></div>
+      <div class="bar-list">
+        <div class="bar-item"><span class="bar-label">Accuracy</span><div class="bar-track"><div class="bar-fill" style="width:63%;background:linear-gradient(90deg,var(--blue),var(--teal))"></div></div><span class="bar-val">63.3%</span></div>
+        <div class="bar-item"><span class="bar-label">Macro F1</span><div class="bar-track"><div class="bar-fill" style="width:45%;background:linear-gradient(90deg,var(--blue),var(--teal))"></div></div><span class="bar-val">0.452</span></div>
+        <div class="bar-item"><span class="bar-label">중증 F1</span><div class="bar-track"><div class="bar-fill" style="width:11%;background:linear-gradient(90deg,var(--red),#ef4444)"></div></div><span class="bar-val">0.113</span></div>
+        <div class="bar-item"><span class="bar-label">중증 Recall</span><div class="bar-track"><div class="bar-fill" style="width:29%;background:linear-gradient(90deg,var(--red),#ef4444)"></div></div><span class="bar-val" style="color:var(--red);font-weight:700">28.9%</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🔑 변수 중요도</div><span class="card-badge">XGBoost</span></div>
+      <div class="bar-list" id="fi-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🗂️ 3종 통합 데이터</div></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot blue"></div><div class="tl-body"><div class="tl-title">공제회 보상 데이터</div><div class="tl-desc">528,503건 → 443,361건 (경계구간 제거)</div></div></div>
+        <div class="tl-item"><div class="tl-dot green"></div><div class="tl-body"><div class="tl-title">NEDIS 응급의료 통계</div><div class="tl-desc">손상기전별 10~19세 중증 가중치</div></div></div>
+        <div class="tl-item"><div class="tl-dot amber"></div><div class="tl-body"><div class="tl-title">기상청 KMA 데이터</div><div class="tl-desc" id="weather-summary">데이터 로딩 중...</div></div></div>
+      </div>
+    </div>`;
+  views.appendChild(a1);
+
+  // A2: 재정·전략
+  const a2=document.createElement('div');
+  a2.id='admin-2';a2.className='view';
+  a2.innerHTML=`
+    <div class="kpi-grid">
+      <div class="kpi kpi-red"><div class="kpi-label">5년 총지급액</div><div class="kpi-value red">${억(d.total5y지급)}억</div></div>
+      <div class="kpi kpi-green"><div class="kpi-label">B/C ratio</div><div class="kpi-value green">2.09</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📍 IoT 3단계 보급 로드맵</div></div>
+      <div class="stage-row">
+        <div class="stage s1"><div class="stage-lbl">1단계 · 즉시</div><div class="stage-val">서울·경기</div><div class="stage-desc">1.2억 · 437건</div></div>
+        <div class="stage s2"><div class="stage-lbl">2단계 · 1~2년</div><div class="stage-val">6개 지역</div><div class="stage-desc">3.5억 · 418건</div></div>
+      </div>
+      <div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:4px">
+        <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.3px;margin-bottom:3px">3단계 · 2~3년 — 전국 확대</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">총 11억원 · 고등학교 중증 1,064건 커버</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">💰 저비용 즉시 실행 방안</div></div>
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">체육수업 준비운동 의무화</div>
+          <span class="badge badge-green">비용 0원</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted)">축구 중증 356건 · 연간 절감 기대 <b style="color:var(--green)">30.7억원</b></div>
+      </div>
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">진로활동 체크리스트</div>
+          <span class="badge badge-green">비용 0원</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted)">중증비율 5.53% · 연간 절감 기대 <b style="color:var(--green)">2.9억원</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📊 B/C 재정 분석</div></div>
+      <div class="row-item"><span class="row-label">저비용 연간 절감 합계</span><span class="row-val green">33.6억원</span></div>
+      <div class="row-item"><span class="row-label">IoT 전국 보급 비용</span><span class="row-val red">~28억원</span></div>
+      <div class="row-item" style="border:none"><span class="row-label">B/C ratio</span><span class="row-val" style="color:var(--blue);font-size:18px">2.09</span></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📍 지역별 IoT 우선순위</div><span class="card-badge">실계산</span></div>
+      <div class="bar-list" id="region-bars"></div>
+    </div>`;
+  views.appendChild(a2);
+}
+
+// ── 차트 렌더링 ───────────────────────────────────────────────
+function renderCharts(role,tab){
+  const d=STATE.data;if(!d)return;
+
+  if(role==='teacher'&&tab===0){
+    const td=Object.entries(d.byTime).sort((a,b)=>b[1].건수-a[1].건수).slice(0,6);
+    const mx=td[0]?.[1].건수||1;
+    const el=document.getElementById('time-bars-t');
+    if(el)el.innerHTML=td.map(([k,v])=>`
+      <div class="bar-item">
+        <span class="bar-label">${k.length>5?k.slice(0,5)+'…':k}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${v.건수/mx*100}%;background:${v.중증>v.건수*.01?'linear-gradient(90deg,var(--red),#ef4444)':'linear-gradient(90deg,var(--blue),var(--teal))'}"></div></div>
+        <span class="bar-val">${v.건수.toLocaleString()}</span>
+      </div>`).join('');
+  }
+
+  if(role==='teacher'&&tab===1){
+    const zones=[{name:'운동장',pct:91,color:'linear-gradient(90deg,var(--red),#ef4444)'},{name:'강당입구',pct:78,color:'linear-gradient(90deg,var(--red),#ef4444)'},{name:'계단 A',pct:40,color:'linear-gradient(90deg,var(--amber),#f59e0b)'},{name:'계단 B',pct:22,color:'linear-gradient(90deg,var(--blue),var(--teal))'}];
+    const zb=document.getElementById('zone-bars');
+    if(zb)zb.innerHTML=zones.map(z=>`<div class="bar-item"><span class="bar-label">${z.name}</span><div class="bar-track"><div class="bar-fill" style="width:${z.pct}%;background:${z.color}"></div></div><span class="bar-val">${z.pct}%</span></div>`).join('');
+    const yrs=Object.keys(d.weatherByYear).map(Number).sort();
+    const ly2=yrs[yrs.length-1];const w=d.weatherByYear[ly2]||{};
+    const wtl=document.getElementById('weather-tl');
+    if(wtl)wtl.innerHTML=`
+      <div class="tl-item"><div class="tl-dot amber"></div><div class="tl-body"><div class="tl-title">${ly2}년 연평균 기온 ${w.평균기온?.toFixed(1)||'-'}°C</div><div class="tl-desc">결빙 위험 ${w.결빙월수||0}개월 · 폭염 위험 ${w.폭염월수||0}개월</div></div></div>
+      <div class="tl-item"><div class="tl-dot blue"></div><div class="tl-body"><div class="tl-title">연강수량 ${w.연강수량?.toFixed(0)||'-'}mm</div><div class="tl-desc">미끄럼·낙상 위험 기상 조건 분석</div></div></div>`;
+  }
+
+  if(role==='teacher'&&tab===2)setTimeout(updatePrediction,200);
+
+  if(role==='admin'&&tab===0){
+    const ctx=document.getElementById('chart-year');
+    if(ctx){
+      if(STATE.charts.year)STATE.charts.year.destroy();
+      const yrs=Object.keys(d.byYear).map(Number).sort();
+      STATE.charts.year=new Chart(ctx,{
+        type:'bar',
+        data:{labels:yrs,datasets:[{label:'보상 건수',data:yrs.map(y=>d.byYear[y].건수),backgroundColor:yrs.map((y,i)=>i===yrs.length-1?'#dc2626':'#3b82f6'),borderRadius:6,borderSkipped:false}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>`${v.raw.toLocaleString()}건`}}},scales:{y:{grid:{color:'#f1f5f9'},border:{dash:[4,4]},ticks:{font:{size:10},color:'#94a3b8',callback:v=>v>=1000?v/1000+'K':v}},x:{grid:{display:false},ticks:{font:{size:10},color:'#94a3b8'}}}}
+      });
+    }
+    const sb=document.getElementById('school-bars');
+    if(sb){
+      const sc=Object.entries(d.bySchool).filter(([k])=>['고등학교','중학교','초등학교','특수학교'].includes(k)).map(([k,v])=>({name:k,ratio:v.중증/v.건수*100})).sort((a,b)=>b.ratio-a.ratio);
+      const mx2=sc[0]?.ratio||1;
+      sb.innerHTML=sc.map(s=>`<div class="bar-item"><span class="bar-label">${s.name}</span><div class="bar-track"><div class="bar-fill" style="width:${s.ratio/mx2*100}%;background:${s.ratio>1?'linear-gradient(90deg,var(--red),#ef4444)':'linear-gradient(90deg,var(--blue),var(--teal))'}"></div></div><span class="bar-val">${s.ratio.toFixed(2)}%</span></div>`).join('');
+    }
+  }
+
+  if(role==='admin'&&tab===1){
+    const fi=[{name:'고위험_부위',val:41.0},{name:'남학생',val:11.6},{name:'학교급',val:10.7},{name:'지역_대도시',val:6.0},{name:'NEDIS_w',val:2.5},{name:'기상변수',val:3.3},{name:'사고시간',val:1.0}].sort((a,b)=>b.val-a.val);
+    const fb=document.getElementById('fi-bars');
+    if(fb)fb.innerHTML=fi.map(f=>`<div class="bar-item"><span class="bar-label">${f.name.length>7?f.name.slice(0,7)+'…':f.name}</span><div class="bar-track"><div class="bar-fill" style="width:${f.val/41*100}%;background:${f.val>10?'linear-gradient(90deg,var(--red),#ef4444)':f.name.includes('NEDIS')?'linear-gradient(90deg,var(--green),#10b981)':f.name.includes('기상')?'linear-gradient(90deg,var(--amber),#f59e0b)':'linear-gradient(90deg,var(--blue),var(--teal))'}"></div></div><span class="bar-val">${f.val}%</span></div>`).join('');
+    const yrs=Object.keys(d.weatherByYear).map(Number).sort();
+    const ly3=yrs[yrs.length-1];const w=d.weatherByYear[ly3]||{};
+    const ws=document.getElementById('weather-summary');
+    if(ws)ws.textContent=`${ly3}년 기준: 결빙 ${w.결빙월수||0}개월, 폭염 ${w.폭염월수||0}개월, 연강수량 ${w.연강수량?.toFixed(0)||'-'}mm`;
+  }
+
+  if(role==='admin'&&tab===2){
+    const rb=document.getElementById('region-bars');
+    if(rb&&d.regions.length){
+      const top8=d.regions.slice(0,8);const ms=top8[0].점수;
+      rb.innerHTML=top8.map((r,i)=>`<div class="bar-item"><span class="bar-label">${r.지역}</span><div class="bar-track"><div class="bar-fill" style="width:${r.점수/ms*100}%;background:${i<2?'linear-gradient(90deg,var(--red),#ef4444)':i<5?'linear-gradient(90deg,var(--blue),var(--teal))':'linear-gradient(90deg,var(--sky),#60a5fa)'}"></div></div><span class="bar-val">${r.점수.toFixed(2)}</span></div>`).join('');
+    }
+  }
+}
+
+// ── 초기화 ────────────────────────────────────────────────────
+document.getElementById('gh-user').value=STATE.ghUser;
+document.getElementById('gh-repo').value=STATE.ghRepo;
+document.getElementById('gh-branch').value=STATE.ghBranch;
+
+window.addEventListener('load',()=>{
+  if(STATE.ghUser&&STATE.ghRepo){loadData();}
+});
+</script>
+    <!-- 홈 인디케이터 -->
+    <div class="home-bar"><div class="home-indicator"></div></div>
+
+  </div><!-- /phone-screen -->
+</div><!-- /phone-frame -->
+
+<div class="page-label-bottom">School Safety Dashboard v2.0</div>
+</body>
+</html>
